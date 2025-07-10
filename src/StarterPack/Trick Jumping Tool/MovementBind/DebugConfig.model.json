@@ -1,0 +1,7 @@
+{
+	"className": "Configuration",
+	"attributes": {
+		"MovesUI_Enabled": {"Bool": true},
+		"Print_Movements": {"Bool": false}
+	}
+}

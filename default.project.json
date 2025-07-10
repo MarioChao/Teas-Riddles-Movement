@@ -1,0 +1,11 @@
+{
+  "name": "Teas&Riddles-Movement",
+  "tree": {
+    "$className": "DataModel",
+
+    "StarterPack": {
+      "$path": "src/StarterPack",
+      "$ignoreUnknownInstances": true
+    }
+  }
+}
