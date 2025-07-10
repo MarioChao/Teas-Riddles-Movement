@@ -26,7 +26,7 @@ The movement tool (named **Trick Jumping Tool**) allows holders to perform sever
 * Ground pound (`c` midair)
 * Dive cancel & ground pound cancel (`space` midair)
 * Jump (press `space`)
-* Long jump (roll + jump / move & crouch + jump)
+* Long jump (roll + jump)
 * Back flip (crouch + jump)
 * Triple jump / consecutive jumps (hold jump)
 
