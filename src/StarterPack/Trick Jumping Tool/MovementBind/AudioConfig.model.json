@@ -4,6 +4,8 @@
 		"Dive_Audio": {"String": "rbxassetid://12222200"},
 		"DiveCancel_Audio": {"String": "rbxassetid://12222170"},
 		"GPSpin_Audio": {"String": "rbxassetid://15675028888"},
-		"Jump3_Audio": {"String": "rbxassetid://17208372272"}
+		"Jump3_Audio": {"String": "rbxassetid://17208372272"},
+		"LongJump_Audio": {"String": "rbxassetid://12222200"},
+		"BackFlip_Audio": {"String": "rbxassetid://17208204604"}
 	}
 }

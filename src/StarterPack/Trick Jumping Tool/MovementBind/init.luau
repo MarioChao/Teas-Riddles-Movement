@@ -18,6 +18,7 @@ end
 ---------- Services ----------
 
 local ContextActionService = game:GetService("ContextActionService")
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 
 
@@ -79,6 +80,8 @@ local move_audioId = {
 	DiveCancel = AudioConfig:GetAttribute("DiveCancel_Audio"),
 	GroundPoundSpin = AudioConfig:GetAttribute("GPSpin_Audio"),
 	Jump3 = AudioConfig:GetAttribute("Jump3_Audio"),
+	LongJump = AudioConfig:GetAttribute("LongJump_Audio"),
+	BackFlip = AudioConfig:GetAttribute("BackFlip_Audio"),
 }
 
 
@@ -124,6 +127,8 @@ local toolConnections: {RBXScriptConnection} = {}
 local landedEvent = Instance.new("BindableEvent")
 
 
+----- Moves -----
+
 local isDivingAction = false
 local isCrouchingAction = false
 local isJumpingAction = false
@@ -143,9 +148,14 @@ local isLastLandFromJump = false
 local jumpIndex = 1
 
 
-local audioDeviceOutput = Instance.new("AudioDeviceOutput")
-audioDeviceOutput.Player = localPlayer
-audioDeviceOutput.Parent = AudioConfig
+----- Audio -----
+
+local audioEmitter: AudioEmitter
+
+local audioEmitterCurve = {}
+audioEmitterCurve[10] = 1
+audioEmitterCurve[50] = 0.3
+audioEmitterCurve[300] = 0
 
 local move_audioPlayer: {string: AudioPlayer} = {}
 
@@ -224,19 +234,24 @@ local function createAudio(audioId: string, title: string)
 
 	local wire = Instance.new("Wire")
 	wire.SourceInstance = audioPlayer
-	wire.TargetInstance = audioDeviceOutput
+	wire.TargetInstance = audioEmitter
 	wire.Name = `{title}Wire`
 
 	move_audioPlayer[title] = audioPlayer
 
-	audioPlayer.Parent = audioDeviceOutput
-	wire.Parent = audioDeviceOutput
+	audioPlayer.Parent = audioEmitter
+	wire.Parent = audioEmitter
 end
 
 local function initializeAudios()
-	for move, audioId in move_audioId do
+	Debris:AddItem(audioEmitter, 0)
+	audioEmitter = Instance.new("AudioEmitter")
+	audioEmitter:SetDistanceAttenuation(audioEmitterCurve)
+
+	move_audioPlayer = {}
+	for moveName, audioId in move_audioId do
 		task.defer(function()
-			createAudio(audioId, move)
+			createAudio(audioId, moveName)
 		end)
 	end
 end
@@ -285,6 +300,9 @@ local function isPlayerFloorMaterialAir()
 end
 
 local function isPlayerJumping()
+	if currentPlayerState == playerStates.Dive then return true end
+	if currentPlayerState == playerStates.GroundPoundSpin then return true end
+	if currentPlayerState == playerStates.GroundPound then return true end
 	if currentPlayerState == playerStates.Jump1 then return true end
 	if currentPlayerState == playerStates.Jump2 then return true end
 	if currentPlayerState == playerStates.Jump3 then return true end
@@ -365,16 +383,21 @@ local function waitUntilPlayerLanded()
 end
 
 local function onCharacterAdded(character: Model)
-	local function getHumanoidLoop(): Humanoid
+	local function getHumanoidAndRootPartLoop(): (Humanoid, BasePart)
 		local humanoid = character:FindFirstChildWhichIsA("Humanoid")
 		while not humanoid do
 			RunService.Heartbeat:Wait()
 			humanoid = character:FindFirstChildWhichIsA("Humanoid")
 		end
-		return humanoid :: Humanoid
+		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+		while not humanoidRootPart do
+			RunService.Heartbeat:Wait()
+			humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+		end
+		return humanoid :: Humanoid, humanoidRootPart :: BasePart
 	end
 
-	local humanoid = getHumanoidLoop()
+	local humanoid, humanoidRootPart = getHumanoidAndRootPartLoop()
 
 	-- State connections
 	local landedConnection = humanoid.StateChanged:Connect(function(old: Enum.HumanoidStateType, new: Enum.HumanoidStateType)
@@ -390,6 +413,12 @@ local function onCharacterAdded(character: Model)
 		end
 	end)
 	table.insert(toolConnections, landedConnection)
+
+	-- Audio
+	task.defer(function()
+		initializeAudios()
+		audioEmitter.Parent = humanoidRootPart
+	end)
 
 	-- Clean up
 	humanoid.Died:Once(function()
