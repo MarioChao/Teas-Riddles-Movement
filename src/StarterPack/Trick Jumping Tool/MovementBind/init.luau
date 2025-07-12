@@ -107,12 +107,6 @@ local move_actionName = {
 	Jump = "Movement: Jump",
 }
 
-local move_uiPosition = {
-	Crouch = UDim2.new(UDim.new(1, -150), UDim.new(1, -120)),
-	Dive = UDim2.new(UDim.new(1, -100), UDim.new(1, -120)),
-	Jump = UDim2.new(UDim.new(1, -50), UDim.new(1, -120)),
-}
-
 local localPlayer = Players.LocalPlayer
 
 
@@ -200,6 +194,50 @@ end
 
 ---------- User interface Functions----------
 
+----- Touch buttons -----
+
+local function modifyTouchButton(moveName: string, uiPosition: UDim2, uiSize: UDim2)
+	-- Modify touch buttons
+	ContextActionService:SetTitle(move_actionName[moveName], moveName)
+	ContextActionService:SetPosition(move_actionName[moveName], uiPosition)
+	local button = ContextActionService:GetButton(move_actionName[moveName])
+	if button then
+		button.Size = uiSize
+		local actionTitle: TextLabel = button:FindFirstChild("ActionTitle")
+		actionTitle.TextScaled = true
+		local uiTextSizeConstraint = Instance.new("UITextSizeConstraint")
+		uiTextSizeConstraint.MaxTextSize = 18
+		uiTextSizeConstraint.Parent = actionTitle
+	end
+end
+
+local function resizeTouchButtonUIs()
+	local minAxis = math.min(Movement_ScreenGui.AbsoluteSize.X, Movement_ScreenGui.AbsoluteSize.y)
+	local isSmallScreen = minAxis <= 500
+	local buttonSize = isSmallScreen and 70 or 120
+	local jumpButtonPosition = (
+		isSmallScreen and UDim2.new(1, -(buttonSize*1.5-10), 1, -buttonSize - 20) or
+		UDim2.new(1, -(buttonSize*1.5-10), 1, -buttonSize * 1.75)
+	)
+	local jumpButtonXOffset = jumpButtonPosition.X.Offset
+	local jumpButtonYOffset = jumpButtonPosition.Y.Offset
+
+	local touchButtonXDifference = 1.2*buttonSize
+	local touchButtonUISize = UDim2.fromOffset(buttonSize, buttonSize)
+	local move_touchButtonUIPosition = {
+		Crouch = UDim2.new(UDim.new(1, jumpButtonXOffset - 0*touchButtonXDifference), UDim.new(1, jumpButtonYOffset - 1*buttonSize)),
+		Dive = UDim2.new(UDim.new(1, jumpButtonXOffset - 1*touchButtonXDifference), UDim.new(1, jumpButtonYOffset - 1*buttonSize)),
+		Jump = UDim2.new(UDim.new(1, jumpButtonXOffset - 0.5*touchButtonXDifference), UDim.new(1, jumpButtonYOffset - 1.75*buttonSize)),
+	}
+
+	for _, moveName in moveNames do
+		modifyTouchButton(moveName, move_touchButtonUIPosition[moveName], touchButtonUISize)
+	end
+end
+
+
+----- Screen UIs -----
+
 local function initializeUserInterfaces()
 	-- Get player gui
 	local PlayerGui = localPlayer.PlayerGui
@@ -218,6 +256,10 @@ local function initializeUserInterfaces()
 	-- Set instances
 	Move_TextLabel = Movement_ScreenGui.Move_TextLabel
 	Move_TextLabel.Text = ""
+
+	-- Call functions related to absolute size
+	resizeTouchButtonUIs()
+	table.insert(toolConnections, Movement_ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTouchButtonUIs))
 end
 
 local function showUI()
@@ -860,17 +902,6 @@ end
 
 local function bindAction(moveName: string, inputTypes: {Enum.KeyCode | Enum.UserInputType | Enum.PlayerActions})
 	ContextActionService:BindActionAtPriority(move_actionName[moveName], handleAction, true, 10000, table.unpack(inputTypes))
-
-	ContextActionService:SetTitle(move_actionName[moveName], moveName)
-	ContextActionService:SetPosition(move_actionName[moveName], move_uiPosition[moveName])
-	local button = ContextActionService:GetButton(move_actionName[moveName])
-	if button then
-		local actionTitle: TextLabel = button:FindFirstChild("ActionTitle")
-		actionTitle.TextScaled = true
-		local uiTextSizeConstraint = Instance.new("UITextSizeConstraint")
-		uiTextSizeConstraint.MaxTextSize = 18
-		uiTextSizeConstraint.Parent = actionTitle
-	end
 end
 
 
