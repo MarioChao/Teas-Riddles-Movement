@@ -95,10 +95,22 @@ local printMovements = DebugConfig:GetAttribute("Print_Movements")
 
 ---------- Variables ----------
 
+local moveNames = {
+	Crouch = "Crouch",
+	Dive = "Dive",
+	Jump = "Jump",
+}
+
 local move_actionName = {
 	Crouch = "Movement: Crouch",
 	Dive = "Movement: Dive",
 	Jump = "Movement: Jump",
+}
+
+local move_uiPosition = {
+	Crouch = UDim2.new(UDim.new(1, -150), UDim.new(1, -120)),
+	Dive = UDim2.new(UDim.new(1, -100), UDim.new(1, -120)),
+	Jump = UDim2.new(UDim.new(1, -50), UDim.new(1, -120)),
 }
 
 local localPlayer = Players.LocalPlayer
@@ -846,8 +858,19 @@ end
 
 ---------- Keybind functions ----------
 
-local function bindAction(actionName: string, inputTypes: {Enum.KeyCode | Enum.UserInputType | Enum.PlayerActions})
-	ContextActionService:BindActionAtPriority(actionName, handleAction, true, 10000, table.unpack(inputTypes))
+local function bindAction(moveName: string, inputTypes: {Enum.KeyCode | Enum.UserInputType | Enum.PlayerActions})
+	ContextActionService:BindActionAtPriority(move_actionName[moveName], handleAction, true, 10000, table.unpack(inputTypes))
+
+	ContextActionService:SetTitle(move_actionName[moveName], moveName)
+	ContextActionService:SetPosition(move_actionName[moveName], move_uiPosition[moveName])
+	local button = ContextActionService:GetButton(move_actionName[moveName])
+	if button then
+		local actionTitle: TextLabel = button:FindFirstChild("ActionTitle")
+		actionTitle.TextScaled = true
+		local uiTextSizeConstraint = Instance.new("UITextSizeConstraint")
+		uiTextSizeConstraint.MaxTextSize = 18
+		uiTextSizeConstraint.Parent = actionTitle
+	end
 end
 
 
@@ -906,8 +929,8 @@ end
 
 ---------- Module fields ----------
 
-table.freeze(move_actionName)
-module.moveActions = move_actionName
+table.freeze(moveNames)
+module.moveNames = moveNames
 
 module.bindAction = bindAction
 

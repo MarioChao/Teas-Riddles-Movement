@@ -15,9 +15,9 @@ local MovementBind = require(script.Parent:WaitForChild("MovementBind"))
 ---------- Keybinds ----------
 
 local function onToolEquipped()
-	MovementBind.bindAction(MovementBind.moveActions.Crouch, {Enum.KeyCode.C})
-	MovementBind.bindAction(MovementBind.moveActions.Dive, {Enum.KeyCode.LeftShift})
-	MovementBind.bindAction(MovementBind.moveActions.Jump, {Enum.PlayerActions.CharacterJump})
+	MovementBind.bindAction(MovementBind.moveNames.Crouch, {Enum.KeyCode.C})
+	MovementBind.bindAction(MovementBind.moveNames.Dive, {Enum.KeyCode.LeftShift})
+	MovementBind.bindAction(MovementBind.moveNames.Jump, {Enum.PlayerActions.CharacterJump})
 
 	MovementBind.connect()
 
