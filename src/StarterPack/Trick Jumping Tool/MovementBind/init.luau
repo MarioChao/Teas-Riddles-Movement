@@ -140,7 +140,7 @@ local isCrouchingAction = false
 local isJumpingAction = false
 
 
-local canDive = true
+local canDive = false
 
 
 local latestGroundPoundStartTime = -32
@@ -177,7 +177,7 @@ local function initializeVariables()
 	isJumpingAction = false
 
 
-	canDive = true
+	canDive = false
 
 
 	latestGroundPoundStartTime = -32
@@ -367,6 +367,7 @@ end
 
 local function isPlayerGrounded()
 	if isPlayerJumping() then return false end
+	if not currentPlayerState then return false end
 	return time() - lastGroundedTime < jumpLeaveGroundTime
 end
 
@@ -424,18 +425,6 @@ local function playerJump()
 	humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 end
 
-local function waitUntilPlayerLanded()
-	landedEvent.Event:Wait()
-
-	-- Small delay for jumping
-	--task.wait(0.2)
-
-	-- Wait
-	-- while isPlayerFloorMaterialAir() do
-	--	RunService.Heartbeat:Wait()
-	--end
-end
-
 local function onCharacterAdded(character: Model)
 	local function getHumanoidAndRootPartLoop(): (Humanoid, BasePart)
 		local humanoid = character:FindFirstChildWhichIsA("Humanoid")
@@ -468,6 +457,14 @@ local function onCharacterAdded(character: Model)
 	end)
 	table.insert(toolConnections, landedConnection)
 
+	local jumpedConnection = humanoid.Jumping:Connect(function(active: boolean)
+		if active and not isPlayerJumping() then
+			setPlayerState(playerStates.Jump1)
+			showMovement("touch button jump")
+		end
+	end)
+	table.insert(toolConnections, jumpedConnection)
+
 	-- Audio
 	task.defer(function()
 		initializeAudios()
@@ -477,6 +474,7 @@ local function onCharacterAdded(character: Model)
 	-- Clean up
 	humanoid.Died:Once(function()
 		landedConnection:Disconnect()
+		jumpedConnection:Disconnect()
 	end)
 end
 
@@ -946,6 +944,9 @@ local function connect()
 		end
 	end))
 
+	if not isPlayerFloorMaterialAir() then
+		task.defer(setStanding)
+	end
 	table.insert(toolConnections, landedEvent.Event:Connect(function()
 		setStanding()
 	end))
