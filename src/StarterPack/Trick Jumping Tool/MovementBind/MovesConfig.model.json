@@ -1,9 +1,9 @@
 {
 	"className": "Configuration",
 	"attributes": {
-		"Base_JumpHeight": {"Float64": 7.2},
+		"Base_JumpPower": {"Float64": 50},
 		"Base_Speed": {"Float64": 16},
-		"BFlip_HeightBuff": {"Float64": 5},
+		"BFlip_JumpBuff": {"Float64": 15},
 		"BFlip_SpeedBuff": {"Float64": -3},
 		"BFlip_VelocityXZ": {"Float64": 0},
 		"Crouch_SpeedBuff": {"Float64": -8},
@@ -16,10 +16,10 @@
 		"GPSpin_Time": {"Float64": 0.3},
 		"Jump_ConsecTime": {"Float64": 0.15},
 		"Jump_LeaveGroundTime": {"Float64": 0.15},
-		"Jump1_HeightBuff": {"Float64": 0},
-		"Jump2_HeightBuff": {"Float64": 3},
-		"Jump3_HeightBuff": {"Float64": 7},
-		"LJump_HeightBuff": {"Float64": -3},
+		"Jump1_JumpBuff": {"Float64": 0},
+		"Jump2_JumpBuff": {"Float64": 10},
+		"Jump3_JumpBuff": {"Float64": 21},
+		"LJump_JumpBuff": {"Float64": -12},
 		"LJump_SpeedBuff": {"Float64": 12},
 		"Roll_SpeedBuff": {"Float64": 16}
 	}

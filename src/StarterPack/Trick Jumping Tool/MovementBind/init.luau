@@ -47,13 +47,13 @@ local speedBuffs = {
 }
 
 
-local baseJumpHeight = MovesConfig:GetAttribute("Base_JumpHeight")
-local jumpHeightBuffs = {
-	BackFlip = MovesConfig:GetAttribute("BFlip_HeightBuff"),
-	LongJump = MovesConfig:GetAttribute("LJump_HeightBuff"),
-	Jump1 = MovesConfig:GetAttribute("Jump1_HeightBuff"),
-	Jump2 = MovesConfig:GetAttribute("Jump2_HeightBuff"),
-	Jump3 = MovesConfig:GetAttribute("Jump3_HeightBuff"),
+local baseJumpPower = MovesConfig:GetAttribute("Base_JumpPower")
+local jumpPowerBuffs = {
+	BackFlip = MovesConfig:GetAttribute("BFlip_JumpBuff"),
+	LongJump = MovesConfig:GetAttribute("LJump_JumpBuff"),
+	Jump1 = MovesConfig:GetAttribute("Jump1_JumpBuff"),
+	Jump2 = MovesConfig:GetAttribute("Jump2_JumpBuff"),
+	Jump3 = MovesConfig:GetAttribute("Jump3_JumpBuff"),
 }
 
 local groundPoundVelocityY_magnitude = MovesConfig:GetAttribute("GP_VelocityY")
@@ -399,7 +399,10 @@ local function refreshPlayerSpeedJump()
 	end
 
 	humanoid.WalkSpeed = baseWalkSpeed + (speedBuffs[currentPlayerState] or 0)
-	humanoid.JumpHeight = baseJumpHeight + (jumpHeightBuffs[currentPlayerState] or 0)
+	local newJumpPower = baseJumpPower + (jumpPowerBuffs[currentPlayerState] or 0)
+	local newJumpVelocity = newJumpPower * 1.04515
+	humanoid.JumpPower = newJumpPower
+	humanoid.JumpHeight = (math.pow(newJumpVelocity, 2) + 41.12071) / (2 * workspace.Gravity)
 end
 
 local function setStanding()
@@ -918,7 +921,7 @@ local function disconnect()
 	end
 	table.clear(toolConnections)
 
-	-- Refresh player speed & jump height
+	-- Refresh player speed & jump power
 	initializeVariables()
 	refreshPlayerSpeedJump()
 end
