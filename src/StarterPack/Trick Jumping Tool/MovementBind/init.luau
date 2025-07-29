@@ -20,6 +20,7 @@ end
 local ContextActionService = game:GetService("ContextActionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
 
 
 ---------- Instances ----------
@@ -156,7 +157,12 @@ local jumpIndex = 1
 
 ----- Audio -----
 
+local audioInteractionGroup = "TrickJumpingAudio"
+
+local audioDeviceOutput: AudioDeviceOutput
+local audioListener: AudioListener
 local audioEmitter: AudioEmitter
+local emitterWire: Wire
 
 local audioEmitterCurve = {}
 audioEmitterCurve[10] = 1
@@ -298,9 +304,22 @@ local function createAudio(audioId: string, title: string)
 end
 
 local function initializeAudios()
+	Debris:AddItem(audioDeviceOutput, 0)
+	Debris:AddItem(audioListener, 0)
 	Debris:AddItem(audioEmitter, 0)
+	Debris:AddItem(emitterWire, 0)
+	audioDeviceOutput = Instance.new("AudioDeviceOutput")
+	audioListener = Instance.new("AudioListener")
 	audioEmitter = Instance.new("AudioEmitter")
+	emitterWire = Instance.new("Wire")
+	audioDeviceOutput.Name = "TrickJumpAudioDeviceOutput"
+	audioListener.Name = "TrickJumpAudioListener"
+	audioListener.AudioInteractionGroup = audioInteractionGroup
+	audioEmitter.Name = "TrickJumpAudioEmitter"
 	audioEmitter:SetDistanceAttenuation(audioEmitterCurve)
+	audioEmitter.AudioInteractionGroup = audioInteractionGroup
+	emitterWire.SourceInstance = audioListener
+	emitterWire.TargetInstance = audioDeviceOutput
 
 	move_audioPlayer = {}
 	for moveName, audioId in move_audioId do
@@ -308,6 +327,10 @@ local function initializeAudios()
 			createAudio(audioId, moveName)
 		end)
 	end
+
+	emitterWire.Parent = audioListener
+	audioListener.Parent = workspace.CurrentCamera
+	audioDeviceOutput.Parent = SoundService
 end
 
 task.defer(initializeAudios)
