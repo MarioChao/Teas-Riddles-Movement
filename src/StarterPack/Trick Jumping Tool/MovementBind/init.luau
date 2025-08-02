@@ -23,6 +23,11 @@ local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
 
 
+---------- Imports ----------
+
+local CheckPlayerJump = require(script:WaitForChild("CheckPlayerJump"))
+
+
 ---------- Instances ----------
 
 local Default_Movement_ScreenGui = script:WaitForChild("Movement_ScreenGui")
@@ -69,7 +74,7 @@ local diveCancelVelocityY_magnitude = MovesConfig:GetAttribute("DiveCancel_Veloc
 local backFlipVelocityXZ_magnitude = MovesConfig:GetAttribute("BFlip_VelocityXZ")
 
 local jumpConsecutiveTime = MovesConfig:GetAttribute("Jump_ConsecTime")
-local jumpLeaveGroundTime = MovesConfig:GetAttribute("Jump_LeaveGroundTime")
+local jumpLeaveGroundTime = MovesConfig:GetAttribute("Jump_LeaveGroundTime") -- aka coyote jump time
 
 
 ----- Audio -----
@@ -130,6 +135,9 @@ local playerStates = {
 local currentPlayerState = nil
 
 
+local lastFrameIsJumping = false
+
+
 local toolConnections: {RBXScriptConnection} = {}
 local landedEvent = Instance.new("BindableEvent")
 
@@ -177,6 +185,8 @@ local move_audioPlayer: {string: AudioPlayer} = {}
 local function initializeVariables()
 	currentPlayerState = nil
 
+	lastFrameIsJumping = false
+
 
 	isDivingAction = false
 	isCrouchingAction = false
@@ -203,6 +213,11 @@ end
 ----- Touch buttons -----
 
 local function modifyTouchButton(moveName: string, uiPosition: UDim2, uiSize: UDim2)
+	-- Validate action binded
+	if not next(ContextActionService:GetBoundActionInfo(move_actionName[moveName])) then
+		return
+	end
+
 	-- Modify touch buttons
 	ContextActionService:SetTitle(move_actionName[moveName], moveName)
 	ContextActionService:SetPosition(move_actionName[moveName], uiPosition)
@@ -244,6 +259,25 @@ end
 
 ----- Screen UIs -----
 
+local function repositionMovementGui()
+	local minAxis = math.min(Movement_ScreenGui.AbsoluteSize.X, Movement_ScreenGui.AbsoluteSize.y)
+	local isSmallScreen = minAxis <= 500
+	local buttonSize = isSmallScreen and 70 or 120
+	local jumpButtonPosition = (
+		isSmallScreen and UDim2.new(1, -(buttonSize*1.5-10), 1, -buttonSize - 20) or
+		UDim2.new(1, -(buttonSize*1.5-10), 1, -buttonSize * 1.75)
+	)
+	local jumpButtonYOffset = jumpButtonPosition.Y.Offset
+	local touchButtonYOffset = jumpButtonYOffset - buttonSize
+	local textLabelHeight = math.abs(Move_TextLabel.Size.Y.Offset)
+
+	if jumpButtonYOffset + buttonSize < -20 - textLabelHeight then
+		Move_TextLabel.Position = UDim2.new(1, -20, 1, -20)
+	else
+		Move_TextLabel.Position = UDim2.new(Move_TextLabel.Position.X, UDim.new(1, touchButtonYOffset - 5))
+	end
+end
+
 local function initializeUserInterfaces()
 	-- Get player gui
 	local PlayerGui = localPlayer.PlayerGui
@@ -265,7 +299,9 @@ local function initializeUserInterfaces()
 
 	-- Call functions related to absolute size
 	resizeTouchButtonUIs()
+	repositionMovementGui()
 	table.insert(toolConnections, Movement_ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTouchButtonUIs))
+	table.insert(toolConnections, Movement_ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(repositionMovementGui))
 end
 
 local function showUI()
@@ -424,8 +460,11 @@ local function refreshPlayerSpeedJump()
 	humanoid.WalkSpeed = baseWalkSpeed + (speedBuffs[currentPlayerState] or 0)
 	local newJumpPower = baseJumpPower + (jumpPowerBuffs[currentPlayerState] or 0)
 	local newJumpVelocity = newJumpPower * 1.04515
-	humanoid.JumpPower = newJumpPower
-	humanoid.JumpHeight = (math.pow(newJumpVelocity, 2) + 41.12071) / (2 * workspace.Gravity)
+	if humanoid.UseJumpPower then
+		humanoid.JumpPower = newJumpPower
+	else
+		humanoid.JumpHeight = (math.pow(newJumpVelocity, 2) + 41.12071) / (2 * workspace.Gravity)
+	end
 end
 
 local function setStanding()
@@ -486,7 +525,7 @@ local function onCharacterAdded(character: Model)
 	local jumpedConnection = humanoid.Jumping:Connect(function(active: boolean)
 		if active and not isPlayerJumping() then
 			setPlayerState(playerStates.Jump1)
-			showMovement("touch button jump")
+			showMovement("normal jump")
 		end
 	end)
 	table.insert(toolConnections, jumpedConnection)
@@ -925,6 +964,10 @@ end
 ---------- Keybind functions ----------
 
 local function bindAction(moveName: string, inputTypes: {Enum.KeyCode | Enum.UserInputType | Enum.PlayerActions})
+	if moveName == moveNames.Jump then
+		warn("[Movement]: Jump doesn't need to be binded!")
+	end
+
 	ContextActionService:BindActionAtPriority(move_actionName[moveName], handleAction, true, 10000, table.unpack(inputTypes))
 end
 
@@ -944,6 +987,10 @@ local function disconnect()
 	end
 	table.clear(toolConnections)
 
+	-- Stop detecting player jump
+	CheckPlayerJump.disconnect()
+	RunService:UnbindFromRenderStep("Movement: Jump")
+
 	-- Refresh player speed & jump power
 	initializeVariables()
 	refreshPlayerSpeedJump()
@@ -959,17 +1006,34 @@ local function connect()
 	-- Initialize user interfaces
 	initializeUserInterfaces()
 
-	-- Connect new
+	-- Player jump detection
+	CheckPlayerJump.connect(true)
+	RunService:BindToRenderStep("Movement: Jump", Enum.RenderPriority.Input.Value + 2, function()
+		local isJumping = CheckPlayerJump.isJumping
+		if isJumping and not lastFrameIsJumping then
+			handleAction(move_actionName.Jump, Enum.UserInputState.Begin, nil)
+		elseif not isJumping and lastFrameIsJumping then
+			handleAction(move_actionName.Jump, Enum.UserInputState.End, nil)
+		end
+		lastFrameIsJumping = isJumping
+	end)
+
+
+	----- Connect new -----
+
+	-- Player move and jump stats
 	table.insert(toolConnections, RunService.Heartbeat:Connect(function()
 		refreshPlayerSpeedJump()
 	end))
 
+	-- Grounded check
 	table.insert(toolConnections, RunService.Heartbeat:Connect(function()
 		if not isPlayerFloorMaterialAir() then
 			lastGroundedTime = time()
 		end
 	end))
 
+	-- Standing check
 	if not isPlayerFloorMaterialAir() then
 		task.defer(setStanding)
 	end
@@ -977,6 +1041,7 @@ local function connect()
 		setStanding()
 	end))
 
+	-- Character added
 	local initialCharacter = localPlayer.Character
 	task.defer(function()
 		onCharacterAdded(initialCharacter)
