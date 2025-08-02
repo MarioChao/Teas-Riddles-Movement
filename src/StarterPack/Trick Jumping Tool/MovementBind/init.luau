@@ -21,6 +21,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
 
 
 ---------- Imports ----------
@@ -271,10 +272,13 @@ local function repositionMovementGui()
 	local touchButtonYOffset = jumpButtonYOffset - buttonSize
 	local textLabelHeight = math.abs(Move_TextLabel.Size.Y.Offset)
 
-	if jumpButtonYOffset + buttonSize < -20 - textLabelHeight then
-		Move_TextLabel.Position = UDim2.new(1, -20, 1, -20)
-	else
+	local jumpButtonEnabled = UserInputService.TouchEnabled
+	local jumpButtonOverlaps = jumpButtonYOffset + buttonSize >= -20 - textLabelHeight
+
+	if jumpButtonEnabled and jumpButtonOverlaps then
 		Move_TextLabel.Position = UDim2.new(Move_TextLabel.Position.X, UDim.new(1, touchButtonYOffset - 5))
+	else
+		Move_TextLabel.Position = UDim2.new(1, -20, 1, -20)
 	end
 end
 
@@ -289,9 +293,9 @@ local function initializeUserInterfaces()
 	Movement_ScreenGui = PlayerGui:FindFirstChild(Default_Movement_ScreenGui.Name)
 	if not Movement_ScreenGui then
 		Movement_ScreenGui = Default_Movement_ScreenGui:Clone()
+		Movement_ScreenGui.Enabled = false
 		Movement_ScreenGui.Parent = PlayerGui
 	end
-	Movement_ScreenGui.Enabled = movesUI_Enabled
 
 	-- Set instances
 	Move_TextLabel = Movement_ScreenGui.Move_TextLabel
@@ -302,6 +306,9 @@ local function initializeUserInterfaces()
 	repositionMovementGui()
 	table.insert(toolConnections, Movement_ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeTouchButtonUIs))
 	table.insert(toolConnections, Movement_ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(repositionMovementGui))
+
+	-- Enable screen gui
+	Movement_ScreenGui.Enabled = movesUI_Enabled
 end
 
 local function showUI()
